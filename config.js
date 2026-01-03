@@ -119,6 +119,19 @@ export const config = {
     ipWhitelist: process.env.ENABLE_IP_WHITELIST === 'false',
     allowedIps: process.env.ALLOWED_IPS ? process.env.ALLOWED_IPS.split(',') : ['127.0.0.1', '::1'],
   },
+
+  // Copy Trading Configuration
+  copyTrading: {
+    enabled: process.env.ENABLE_COPY_TRADING === "true",
+    maxCopyPositions: Number.parseInt(process.env.MAX_COPY_POSITIONS || "3"),
+    copyAmount: Number.parseFloat(process.env.COPY_AMOUNT || "0.05"),
+    copyRatio: Number.parseFloat(process.env.COPY_RATIO || "1.0"),
+    minWalletAge: Number.parseInt(process.env.MIN_WALLET_AGE || "7"),
+    minWinRate: Number.parseFloat(process.env.MIN_WIN_RATE || "0.5"),
+    trackedWallets: process.env.TRACKED_WALLETS
+      ? process.env.TRACKED_WALLETS.split(",").map((w) => ({ address: w.trim() }))
+      : [],
+  },
 };
 
 // Create logs directory if it doesn't exist
@@ -171,6 +184,8 @@ export const getModuleConfig = (moduleName) => {
       return config.notifications;
     case 'logging':
       return config.logging;
+    case "copyTrading":
+      return config.copyTrading
     default:
       return config;
   }
