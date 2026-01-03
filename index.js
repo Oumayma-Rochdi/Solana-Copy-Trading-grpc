@@ -69,15 +69,15 @@ try {
 // Main startup function
 const main = async () => {
   try {
-    await initializeDeploy()
-      .then(() => {
-        logger.info("Deploy initialized successfully");
-      })
-      .catch((error) => {
-        logger.error("Failed to initialize deploy", error);
-        process.exit(1);
-      });
-    logger.info("🚀 Starting Solana Trading Bot...");
+    // await initializeDeploy()
+    //   .then(() => {
+    //     logger.info("Deploy initialized successfully");
+    //   })
+    //   .catch((error) => {
+    //     logger.error("Failed to initialize deploy", error);
+    //     process.exit(1);
+    //   });
+    // logger.info("🚀 Starting Solana Trading Bot...");
 
     // Check wallet balance
     await checkWalletBalance();

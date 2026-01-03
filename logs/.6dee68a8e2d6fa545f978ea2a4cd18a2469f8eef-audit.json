@@ -6,9 +6,9 @@
     "auditLog": "logs\\.6dee68a8e2d6fa545f978ea2a4cd18a2469f8eef-audit.json",
     "files": [
         {
-            "date": 1755198754557,
-            "name": "logs\\trading-bot-2025-08-14.log",
-            "hash": "2ce46b1fe2271a1eaab915e581771fb25f76310f7424154bac8bcfe21bdb8a8a"
+            "date": 1767448780005,
+            "name": "logs\\trading-bot-2026-01-03.log",
+            "hash": "b8f12f1b6949f38f5a7b20bbbdc3e0e64ef9aa149ede96e47b29c77d17c07935"
         }
     ],
     "hashType": "sha256"

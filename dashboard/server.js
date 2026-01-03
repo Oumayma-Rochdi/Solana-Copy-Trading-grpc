@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import logger from '../utils/logger.js';
 import riskManager from '../services/riskManager.js';
 import notificationService from '../services/notifications.js';
+import { copyTradingAPI } from '../services/copyTradingDashboard.js';
 
 const app = express();
 const PORT = process.env.DASHBOARD_PORT || 3000;
@@ -46,6 +47,14 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
   });
 });
+
+// Copy Trading Routes
+app.get('/api/copy-trading/wallets', copyTradingAPI.getTrackedWallets);
+app.post('/api/copy-trading/wallets', copyTradingAPI.addWalletToTrack);
+app.delete('/api/copy-trading/wallets/:walletAddress', copyTradingAPI.removeWalletFromTrack);
+app.get('/api/copy-trading/stats', copyTradingAPI.getStats);
+app.get('/api/copy-trading/stats/:walletAddress', copyTradingAPI.getWalletStats);
+app.post('/api/copy-trading/toggle', copyTradingAPI.toggleCopyTrading);
 
 // Get bot status and configuration
 app.get('/api/status', (req, res) => {

@@ -6,6 +6,8 @@ import logger from "./utils/logger.js";
 import notificationService from "./services/notifications.js";
 import riskManager from "./services/riskManager.js";
 import chalk from "chalk";
+import copyTrading from './services/copyTrading.js';
+
 
 // Trading configuration from config service
 const tradingConfig = config.trading;
@@ -257,7 +259,30 @@ async function handleNewTokenLaunch(tokenMint, poolStatus, context) {
       poolStatus,
       context,
       timestamp: new Date().toISOString(),
-    });
+    })
+    
+     const copiedTrade = await copyTrading.processTrackedWalletTransaction({
+      from: context.transactionFrom || context.wallet,
+      amount: context.transactionAmount,
+      tokenMint: tokenMint,
+      isBuy: true, // New token launch is always a buy
+      price: context.price || 0,
+      hash: context.txHash,
+    })
+
+     // Determine the amount to trade (either copied amount or sniper amount)
+    let tradeAmount = config.trading.sniperAmount
+    let isCopyTrade = false
+
+    if (copiedTrade) {
+      tradeAmount = copiedTrade.copyAmount
+      isCopyTrade = true
+      logger.info(`Copy trade detected for ${tokenMint}`, {
+        originalTrader: copiedTrade.traderWallet,
+        copyAmount: copiedTrade.copyAmount,
+        copyRatio: copiedTrade.copyRatio,
+      })
+    }
 
     // Check if we can execute a trade
     const tradeCheck = riskManager.canExecuteTrade(config.trading.sniperAmount, tokenMint);
