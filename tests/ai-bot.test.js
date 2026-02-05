@@ -3,6 +3,9 @@
  * Tests the AI analysis service and API endpoints
  */
 
+// Load environment variables from .env file
+import 'dotenv/config'
+
 import aiAnalysis from '../services/aiAnalysis.js'
 import aiPersistence from '../services/aiPersistence.js'
 import logger from '../utils/logger.js'
