@@ -10,6 +10,8 @@ import notificationService from '../services/notifications.js';
 import { copyTradingAPI } from '../services/copyTradingDashboard.js';
 import aiAnalysis from '../services/aiAnalysis.js';
 import aiPersistence from '../services/aiPersistence.js';
+import solanaDataSync from '../services/solanaDataSync.js';
+import solanaDataQuery from '../services/solanaDataQuery.js';
 
 const app = express();
 const PORT = process.env.DASHBOARD_PORT || 3000;
@@ -494,6 +496,536 @@ app.get('/api/ai/token/:tokenMint', async (req, res) => {
     logger.error('Error getting token analysis', error);
     res.status(500).json({
       error: 'Failed to get token analysis',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// ============== Solana Real-Time Data Endpoints ==============
+
+// Start data synchronization
+app.post('/api/data/sync/start', async (req, res) => {
+  try {
+    const frequency = req.body.frequency || 30000; // 30 seconds default
+    
+    // Initialize database connection
+    const dbConnected = await solanaDataSync.init();
+    if (!dbConnected) {
+      return res.status(400).json({
+        error: 'Database connection failed',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await solanaDataSync.start(frequency);
+
+    res.json({
+      success: true,
+      message: 'Data synchronization started',
+      frequency,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error starting data sync', error);
+    res.status(500).json({
+      error: 'Failed to start data sync',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Stop data synchronization
+app.post('/api/data/sync/stop', (req, res) => {
+  try {
+    solanaDataSync.stop();
+
+    res.json({
+      success: true,
+      message: 'Data synchronization stopped',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error stopping data sync', error);
+    res.status(500).json({
+      error: 'Failed to stop data sync',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Add token to watch list
+app.post('/api/data/watch', (req, res) => {
+  try {
+    const { tokenMint } = req.body;
+
+    if (!tokenMint) {
+      return res.status(400).json({
+        error: 'Missing tokenMint',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    solanaDataSync.addWatchedToken(tokenMint);
+
+    res.json({
+      success: true,
+      message: 'Token added to watch list',
+      tokenMint,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error adding watched token', error);
+    res.status(500).json({
+      error: 'Failed to add token',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Remove token from watch list
+app.delete('/api/data/watch/:tokenMint', (req, res) => {
+  try {
+    const { tokenMint } = req.params;
+    solanaDataSync.removeWatchedToken(tokenMint);
+
+    res.json({
+      success: true,
+      message: 'Token removed from watch list',
+      tokenMint,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error removing watched token', error);
+    res.status(500).json({
+      error: 'Failed to remove token',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get watched tokens
+app.get('/api/data/watch', (req, res) => {
+  try {
+    const watched = solanaDataSync.getWatchedTokens();
+
+    res.json({
+      success: true,
+      watched,
+      count: watched.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting watched tokens', error);
+    res.status(500).json({
+      error: 'Failed to get watched tokens',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get current token price
+app.get('/api/data/token/:mint/price', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    
+    await solanaDataQuery.init();
+    const price = await solanaDataQuery.getCurrentTokenPrice(mint);
+
+    if (!price) {
+      return res.status(404).json({
+        error: 'Token price not found',
+        mint,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    res.json({
+      success: true,
+      price,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting token price', error);
+    res.status(500).json({
+      error: 'Failed to get token price',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get token price history
+app.get('/api/data/token/:mint/history', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    const hours = parseInt(req.query.hours) || 24;
+
+    await solanaDataQuery.init();
+    const history = await solanaDataQuery.getTokenPriceHistory(mint, hours);
+
+    res.json({
+      success: true,
+      mint,
+      hours,
+      history,
+      count: history.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting price history', error);
+    res.status(500).json({
+      error: 'Failed to get price history',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get top gainers
+app.get('/api/data/gainers', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+
+    await solanaDataQuery.init();
+    const gainers = await solanaDataQuery.getTopGainers(limit);
+
+    res.json({
+      success: true,
+      gainers,
+      count: gainers.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting top gainers', error);
+    res.status(500).json({
+      error: 'Failed to get gainers',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get top losers
+app.get('/api/data/losers', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+
+    await solanaDataQuery.init();
+    const losers = await solanaDataQuery.getTopLosers(limit);
+
+    res.json({
+      success: true,
+      losers,
+      count: losers.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting top losers', error);
+    res.status(500).json({
+      error: 'Failed to get losers',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get whale transactions
+app.get('/api/data/whale-transactions', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+
+    await solanaDataQuery.init();
+    const transactions = await solanaDataQuery.getWhaleTransactions(limit);
+
+    res.json({
+      success: true,
+      transactions,
+      count: transactions.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting whale transactions', error);
+    res.status(500).json({
+      error: 'Failed to get whale transactions',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get whale transactions for specific token
+app.get('/api/data/token/:mint/whale-transactions', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+
+    await solanaDataQuery.init();
+    const transactions = await solanaDataQuery.getTokenWhaleTransactions(mint, limit);
+
+    res.json({
+      success: true,
+      mint,
+      transactions,
+      count: transactions.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting token whale transactions', error);
+    res.status(500).json({
+      error: 'Failed to get whale transactions',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get recent transactions for token
+app.get('/api/data/token/:mint/transactions', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    const limit = parseInt(req.query.limit) || 100;
+
+    await solanaDataQuery.init();
+    const transactions = await solanaDataQuery.getRecentTransactions(mint, limit);
+
+    res.json({
+      success: true,
+      mint,
+      transactions,
+      count: transactions.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting recent transactions', error);
+    res.status(500).json({
+      error: 'Failed to get transactions',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get top liquidity pools
+app.get('/api/data/pools', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+
+    await solanaDataQuery.init();
+    const pools = await solanaDataQuery.getTopLiquidityPools(limit);
+
+    res.json({
+      success: true,
+      pools,
+      count: pools.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting liquidity pools', error);
+    res.status(500).json({
+      error: 'Failed to get pools',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get pools for specific token
+app.get('/api/data/token/:mint/pools', async (req, res) => {
+  try {
+    const { mint } = req.params;
+
+    await solanaDataQuery.init();
+    const pools = await solanaDataQuery.getTokenPools(mint);
+
+    res.json({
+      success: true,
+      mint,
+      pools,
+      count: pools.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting token pools', error);
+    res.status(500).json({
+      error: 'Failed to get pools',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get token holders analysis
+app.get('/api/data/token/:mint/holders', async (req, res) => {
+  try {
+    const { mint } = req.params;
+
+    await solanaDataQuery.init();
+    const holders = await solanaDataQuery.getTokenHolders(mint);
+
+    res.json({
+      success: true,
+      mint,
+      holders,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting token holders', error);
+    res.status(500).json({
+      error: 'Failed to get holders',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get volume statistics
+app.get('/api/data/stats/volume', async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours) || 24;
+
+    await solanaDataQuery.init();
+    const stats = await solanaDataQuery.getVolumeStats(hours);
+
+    res.json({
+      success: true,
+      stats,
+      hours,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting volume stats', error);
+    res.status(500).json({
+      error: 'Failed to get volume stats',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get market cap statistics
+app.get('/api/data/stats/marketcap', async (req, res) => {
+  try {
+    await solanaDataQuery.init();
+    const stats = await solanaDataQuery.getMarketCapStats();
+
+    res.json({
+      success: true,
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting market cap stats', error);
+    res.status(500).json({
+      error: 'Failed to get market cap stats',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Search tokens
+app.get('/api/data/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        error: 'Missing search query',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    await solanaDataQuery.init();
+    const results = await solanaDataQuery.searchTokens(query);
+
+    res.json({
+      success: true,
+      query,
+      results,
+      count: results.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error searching tokens', error);
+    res.status(500).json({
+      error: 'Failed to search tokens',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get volatility analysis
+app.get('/api/data/token/:mint/volatility', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    const days = parseInt(req.query.days) || 7;
+
+    await solanaDataQuery.init();
+    const analysis = await solanaDataQuery.getVolatilityAnalysis(mint, days);
+
+    res.json({
+      success: true,
+      analysis,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting volatility analysis', error);
+    res.status(500).json({
+      error: 'Failed to get volatility analysis',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get sentiment analysis
+app.get('/api/data/token/:mint/sentiment', async (req, res) => {
+  try {
+    const { mint } = req.params;
+
+    await solanaDataQuery.init();
+    const sentiment = await solanaDataQuery.getSentimentAnalysis(mint);
+
+    res.json({
+      success: true,
+      sentiment,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting sentiment analysis', error);
+    res.status(500).json({
+      error: 'Failed to get sentiment analysis',
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Get sync statistics
+app.get('/api/data/sync/stats', async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours) || 24;
+
+    await solanaDataQuery.init();
+    const stats = await solanaDataQuery.getSyncStats(hours);
+
+    res.json({
+      success: true,
+      stats,
+      hours,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error getting sync stats', error);
+    res.status(500).json({
+      error: 'Failed to get sync stats',
       message: error.message,
       timestamp: new Date().toISOString(),
     });
