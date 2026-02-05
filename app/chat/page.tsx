@@ -16,7 +16,7 @@ export default function ChatPage() {
       {/* Header */}
       <div className="border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
         <h1 className="text-2xl font-bold text-slate-900">Trading Bot</h1>
-        <p className="text-sm text-slate-600">Powered by OpenAI with AI Gateway</p>
+        <p className="text-sm text-slate-600">Powered by OpenAI API</p>
       </div>
 
       {/* Messages Container */}
