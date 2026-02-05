@@ -8,6 +8,8 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.25",
+    "@ai-sdk/react": "^3.0.73",
     "@coral-xyz/anchor": "^0.30.1",
     "@degenfrends/solana-rugchecker": "^0.0.16",
     "@neondatabase/serverless": "^1.0.2",
@@ -32,6 +34,8 @@
     "helmet": "^8.1.0",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "lucide-react": "^0.563.0",
+    "next": "^16.1.6",
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.63.0",
     "nodemailer": "^7.0.6",
@@ -40,14 +44,17 @@
     "pg": "^8.18.0",
     "pump-swap-core-v1": "^2.0.0",
     "rate-limiter-flexible": "^9.0.0",
+    "react": "^19.2.4",
     "readline-sync": "^1.4.10",
     "require": "^0.4.4",
+    "tailwindcss": "^4.1.18",
     "tweetnacl": "^1.0.3",
     "util": "^0.12.5",
     "websocket": "^1.0.35",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "ws": "^8.18.1"
+    "ws": "^8.18.1",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
