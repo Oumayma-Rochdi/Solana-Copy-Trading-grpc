@@ -1,3 +1,5 @@
+import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { config } from '../config.js';
 import logger from '../utils/logger.js';
 import notificationService from './notifications.js';
@@ -15,14 +17,38 @@ class RiskManager {
       startTime: new Date(),
     };
 
-    this.virtualBalance = 2.5; // Starts with 2.5 SOL in paper trading
-
+    this.virtualBalance = 0; // Will be synced with real wallet balance
     this.activePositions = new Map();
     this.tradeHistory = [];
     this.lastTradeTime = 0;
 
+    // Initialize connection
+    this.connection = new Connection(config.wallet.rpcUrl, 'confirmed');
+    try {
+      const decoded = bs58.decode(config.wallet.privateKey);
+      this.publicKey = Keypair.fromSecretKey(decoded).publicKey;
+    } catch (err) {
+      logger.error('[RiskManager] Invalid private key in config', err);
+    }
+
+    // Initial balance sync
+    this.syncWalletBalance();
+
     // Reset daily stats at midnight
     this.scheduleDailyReset();
+  }
+
+  // Sync virtualBalance with real Solana wallet balance
+  async syncWalletBalance() {
+    if (!this.publicKey) return;
+
+    try {
+      const balanceLamports = await this.connection.getBalance(this.publicKey);
+      this.virtualBalance = balanceLamports / LAMPORTS_PER_SOL;
+      logger.debug(`[RiskManager] Wallet balance synced: ${this.virtualBalance} SOL`);
+    } catch (err) {
+      logger.error('[RiskManager] Error syncing wallet balance', err);
+    }
   }
 
   // Check if a new trade is allowed
@@ -360,6 +386,9 @@ class RiskManager {
 
   // Get risk metrics
   async getRiskMetrics() {
+    // Sync balance before returning metrics
+    await this.syncWalletBalance();
+
     const dailyStats = this.getDailyStats();
     const positionSummary = this.getPositionSummary();
 
