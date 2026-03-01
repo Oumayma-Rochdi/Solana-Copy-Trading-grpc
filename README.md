@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="assets/solana-logo.png" width="200" />
+</p>
 # 🚀 Solana Trading Bot v2.0
 
 A high-performance, enterprise-grade Solana trading bot with advanced MEV protection, comprehensive risk management, and real-time monitoring capabilities.
